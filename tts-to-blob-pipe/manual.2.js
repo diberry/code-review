@@ -1,42 +1,25 @@
     require('dotenv').config();
-    const TextToSpeech = require("./textToSpeech");
-    const azure = require('azure-storage');
+  
+    const cogTools = require('cognitive-tools');
+    const azureAsPromised = require('azure-storage-as-promised');
 
-    const getBlobProperties = async(blobService, container, blobName) => {
-        return new Promise((resolve, reject) => {
-            try {
-
-                // blob properties
-                blobService.getBlobProperties(container, blobName, (err, results)=>{
-                    if (err) throw err;
-                    console.log(`getBlobProperties - ${JSON.stringify(results)}`);
-                    if (results) {
-                        console.log(`getBlobProperties - done`);
-                        resolve(results);
-                    }
-                });
-
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-
-    const ttsToBlob = async (container, text, user, fileName) => {
+    const ttsToBlob = async (container, text, user, audioFileName) => {
 
         try{
 
-            const blobService = azure.createBlobService(process.env.STORAGECONNECTIONSTRING);
+            const blobService = new azureAsPromised.Blob(process.env.STORAGECONNECTIONSTRING);
 
-            const textToSpeech = new TextToSpeech({
+            const textToSpeech = new cogTools.TextToSpeech({
                 accessTokenHost: process.env.SPEECHACCESSTOKENHOST,
                 ttsHost: process.env.SPEECHRESOURCETTSHOST,
-                ttsKey: process.env.SPEECHRESOURCETTSKEY
+                ttsKey: process.env.SPEECHRESOURCETTSKEY 
             });
 
-            const directory = user;
-            const transformConfig = {"filenameandpath": fileName};
 
+            const directory = user;
+      
+            const transformConfig = {"filenameandpath": fileName};
+            
             const blobName = directory + "/" + (+new Date).toString() + '-' + transformConfig.filenameandpath;
 
             console.log(container);
@@ -45,35 +28,40 @@
             console.log(process.env.STORAGE_CONNECTIONSTRING);
 
             // DOCS: https://azure.github.io/azure-storage-node/BlobService.html#createWriteStreamToBlockBlob__anchor
-            const writableStream = blobService.createWriteStreamToBlockBlob(container, blobName, { blockIdPrefix: 'block' });
+            const writableStream = blobService.getWriteStreamToBlob(container, blobName, { blockIdPrefix: 'block' });
 
             await textToSpeech.transform(transformConfig, text, writableStream);
 
+            //stream handling
+            //writableStream.end();
+
             console.log(`N-2 textToSpeech.transform done`);
 
-            await getBlobProperties(blobService, container, blobName);
-            console.log(`N-1 blob properties done`);
+            //await getBlobProperties(blobService, container, blobName);
+            //console.log(`N-1 blob properties done`);
         
         }catch(err){
             console.log(`function error - ${err}`);
         }
 
     }
-/*
-    fn().then(results => {
+
+    const audioFileName = "this-is-a-jest-test.mp3";
+
+    ttsToBlob(process.env.CONTAINER, "this is a test", process.env.DIRECTORY, audioFileName).then(results => {
         console.log("N function done");
     }).catch(err => {
         console.log("function err received");
         console.log(err);
     })
-*/
 
+/*
 const blockingLoop = async() =>{
 
     console.log("before loop");
 
     const items = [
-        {text:"this is a test", user: process.env.DIRECTORY,fileName: 'this-is-a-test.mp3'},
+        {text:"this is a test", user: 'diberry',fileName: 'this-is-a-test.mp3'},
         {text:"this is the second test", user: 'samsmith',fileName:'this-is-a-second-test.mp3'},
         {text: "this is the third test", user: 'dontbones', fileName:'this-is-the-third-test.mp3'}
     ];
@@ -81,7 +69,7 @@ const blockingLoop = async() =>{
     for(const item of items){
 
         console.log("in call - before await");
-        await ttsToBlob(process.env.CONTAINER, item.text,item.user,item.fileName);
+        await ttsToBlob(item.text,item.user,item.fileName);
         console.log("in call - after await");
 
     }
@@ -98,3 +86,4 @@ blockingLoop().then(results => {
     console.log("err received");
     console.log(err);
 })
+*/
