@@ -13,7 +13,7 @@
     "azure-storage-as-promised": "^0.8.3",
     "cognitive-tools": "^0.4.0",
     "dotenv": "^8.1.0",
-    "requestretry": "^4.0.0",
+    "requestretry": "^7.0.0",
     "stream-length": "^1.0.2"
   }
 }
